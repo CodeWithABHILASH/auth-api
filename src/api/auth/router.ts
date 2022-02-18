@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import LoggerInstance from '../../loaders/logger';
 import { createUser } from './controller';
 import { loginSchema, signUpSchema } from './schema';
+import database from "../../loaders/database";
 const authRouter = Router();
 
 function handleLogin(req: Request, res: Response) {
@@ -45,8 +46,17 @@ async function loginValidator(req: Request, res: Response, next: NextFunction) {
 }
 async function signUpValidator(req: Request, res: Response, next: NextFunction) {
   try {
-    req.body = await signUpSchema.validate(req.body, { stripUnknown: true });
-    next();
+    const isEmail =  await (await database()).collection("users").findOne({email:req.body.email});
+    if(!isEmail)
+    {
+        req.body = await signUpSchema.validate(req.body, { stripUnknown: true });
+        next();
+    }
+    else{
+      res.status(422).json({
+      message: 'Validation Failed',
+    });
+    }
   } catch (e) {
     LoggerInstance.error(e);
     res.status(422).json({
